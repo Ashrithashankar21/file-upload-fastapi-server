@@ -2,8 +2,17 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
+import os
+from dotenv import load_dotenv
 
 CSV_FILE_EXTENSION = ".csv"
+
+load_dotenv()
+
+folder_to_track = os.getenv("FOLDER_TO_TRACK")
+
+if not folder_to_track:
+    raise ValueError("Environment variable MY_FILE_PATH is not set or is empty.")
 
 
 class DebouncedEventHandler(FileSystemEventHandler):
@@ -35,7 +44,7 @@ class DebouncedEventHandler(FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    path = "C:/Users/ashritha.shankar/Downloads"
+    path = folder_to_track
     event_handler = DebouncedEventHandler()
     observer = Observer()
     observer.schedule(event_handler, path, recursive=True)
