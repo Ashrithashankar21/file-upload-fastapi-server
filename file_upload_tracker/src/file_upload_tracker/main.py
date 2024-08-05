@@ -1,4 +1,5 @@
 import time
+from fastapi import FastAPI
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
@@ -22,6 +23,8 @@ smtp_user = os.getenv("SMTP_USER")
 smtp_password = os.getenv("SMTP_PASSWORD")
 sender_email = os.getenv("SENDER_EMAIL")
 receiver_email = os.getenv("RECEIVER_EMAIL")
+
+app = FastAPI()
 
 if not folder_to_track:
     raise ValueError(
@@ -113,12 +116,12 @@ class DebouncedEventHandler(FileSystemEventHandler):
                 server.login(smtp_user, smtp_password)
                 text = msg.as_string()
                 server.sendmail(sender_email, receiver_email, text)
-            print(f"Email sent: {subject}")
         except Exception as e:
             print(f"Failed to send email: {e}")
 
 
-if __name__ == "__main__":
+@app.get("/track-folder-changes")
+def track_folder_changes():
     path = folder_to_track
     event_handler = DebouncedEventHandler(file_tracker)
     observer = Observer()
@@ -128,6 +131,7 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(1)
+            return {"message": "File Upload Tracker is running."}
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
