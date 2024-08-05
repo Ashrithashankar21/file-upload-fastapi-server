@@ -24,10 +24,16 @@ sender_email = os.getenv("SENDER_EMAIL")
 receiver_email = os.getenv("RECEIVER_EMAIL")
 
 if not folder_to_track:
-    raise ValueError("Environment variable FOLDER_TO_TRACK is not set or is empty.")
+    raise ValueError(
+        "Environment variable FOLDER_TO_TRACK\
+                     is not set or is empty."
+    )
 
 if not file_tracker:
-    raise ValueError("Environment variable FILE_TRACKER is not set or is empty.")
+    raise ValueError(
+        "Environment variable FILE_TRACKER\
+                     is not set or is empty."
+    )
 
 if (
     not smtp_server
@@ -84,12 +90,15 @@ class DebouncedEventHandler(FileSystemEventHandler):
         """Append the event details to the CSV file."""
         with open(self.csv_file_path, "a", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow([event_type, file_path, time.strftime("%Y-%m-%d %H:%M:%S")])
+            time_stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow([event_type, file_path, time_stamp])
 
     def send_email(self, event_type, file_path):
         """Send an email notification."""
         subject = f"File System Event: {event_type}"
-        body = f"Event Type: {event_type}\nFile Path: {file_path}\nTimestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}"
+        time_stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        body = f"Event Type: {event_type}\nFile Path: {file_path}\nTime\
+            stamp: {time_stamp}"
 
         msg = MIMEMultipart()
         msg["From"] = sender_email
