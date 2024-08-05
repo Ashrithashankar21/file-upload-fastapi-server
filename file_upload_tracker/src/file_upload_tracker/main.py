@@ -4,20 +4,42 @@ from watchdog.events import FileSystemEventHandler
 from threading import Timer
 import os
 import csv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 CSV_FILE_EXTENSION = ".csv"
 
 load_dotenv()
 
+# Retrieve configurations from environment variables
 folder_to_track = os.getenv("FOLDER_TO_TRACK")
 file_tracker = os.getenv("FILE_TRACKER")
+smtp_server = os.getenv("SMTP_SERVER")
+smtp_port = os.getenv("SMTP_PORT")
+smtp_user = os.getenv("SMTP_USER")
+smtp_password = os.getenv("SMTP_PASSWORD")
+sender_email = os.getenv("SENDER_EMAIL")
+receiver_email = os.getenv("RECEIVER_EMAIL")
 
 if not folder_to_track:
     raise ValueError("Environment variable FOLDER_TO_TRACK is not set or is empty.")
 
 if not file_tracker:
     raise ValueError("Environment variable FILE_TRACKER is not set or is empty.")
+
+if (
+    not smtp_server
+    or not smtp_port
+    or not smtp_user
+    or not smtp_password
+    or not sender_email
+    or not receiver_email
+):
+    raise ValueError(
+        "Email configuration is not set properly in the environment variables."
+    )
 
 
 class DebouncedEventHandler(FileSystemEventHandler):
@@ -34,6 +56,8 @@ class DebouncedEventHandler(FileSystemEventHandler):
         def handle_event():
             if event.src_path.endswith(CSV_FILE_EXTENSION):
                 self.log_event(event_type, event.src_path)
+                self.send_email(event_type, event.src_path)
+
             del self.event_timers[event.src_path]
 
         timer = Timer(0.5, handle_event)
@@ -61,6 +85,28 @@ class DebouncedEventHandler(FileSystemEventHandler):
         with open(self.csv_file_path, "a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([event_type, file_path, time.strftime("%Y-%m-%d %H:%M:%S")])
+
+    def send_email(self, event_type, file_path):
+        """Send an email notification."""
+        subject = f"File System Event: {event_type}"
+        body = f"Event Type: {event_type}\nFile Path: {file_path}\nTimestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}"
+
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = receiver_email
+        msg["Subject"] = subject
+
+        msg.attach(MIMEText(body, "plain"))
+
+        try:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                text = msg.as_string()
+                server.sendmail(sender_email, receiver_email, text)
+            print(f"Email sent: {subject}")
+        except Exception as e:
+            print(f"Failed to send email: {e}")
 
 
 if __name__ == "__main__":
