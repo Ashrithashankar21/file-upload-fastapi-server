@@ -13,6 +13,25 @@ client = TestClient(app)
 
 @pytest.fixture(scope="function", autouse=True)
 def set_env_variables(monkeypatch):
+    """
+    Pytest fixture to set environment variables for the duration of a test
+    function.
+
+    Args:
+        monkeypatch: A pytest fixture that allows you to safely set
+        and restore attributes, dictionaries, environment variables, etc.
+
+    This fixture sets the following environment variables:
+        - SMTP_SERVER: The SMTP server address.
+        - SMTP_PORT: The SMTP server port.
+        - SMTP_USER: The SMTP server username.
+        - SMTP_PASSWORD: The SMTP server password.
+        - SENDER_EMAIL: The sender's email address.
+        - RECEIVER_EMAIL: The receiver's email address.
+
+    The fixture is automatically used for each test function due to
+    the `autouse=True` parameter.
+    """
     monkeypatch.setenv("SMTP_SERVER", "smtp.office365.com")
     monkeypatch.setenv("SMTP_PORT", "587")
     monkeypatch.setenv("SMTP_USER", "ashritha.shankar@solitontech.com")
@@ -36,8 +55,7 @@ def temp_csv_file(temp_directory):
 
 
 def test_log_event(temp_csv_file):
-    handler = DebouncedEventHandler(csv_file_path=temp_csv_file)
-
+    DebouncedEventHandler(csv_file_path=temp_csv_file)
     test_event_type = "modified"
     test_file_path = "test.csv"
     log_event(temp_csv_file, test_event_type, test_file_path)
@@ -52,12 +70,12 @@ def test_log_event(temp_csv_file):
 
 def test_ensure_csv_exists(temp_directory):
     temp_csv_path = os.path.join(temp_directory, "test.csv")
-    handler = DebouncedEventHandler(csv_file_path=temp_csv_path)
+    DebouncedEventHandler(csv_file_path=temp_csv_path)
 
     assert os.path.isfile(temp_csv_path)
 
 
-def test_track_folder_changes(temp_directory):
+def test_track_folder_changes():
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "File Upload Tracker is running."}
