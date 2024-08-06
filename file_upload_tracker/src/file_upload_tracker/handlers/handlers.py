@@ -20,7 +20,6 @@ smtp_password = os.getenv("SMTP_PASSWORD")
 sender_email = os.getenv("SENDER_EMAIL")
 receiver_email = os.getenv("RECEIVER_EMAIL")
 
-print(receiver_email)
 
 if (
     not smtp_server
