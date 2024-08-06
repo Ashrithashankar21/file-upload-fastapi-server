@@ -54,10 +54,6 @@ if (
 app = FastAPI()
 
 
-def add(a, b):
-    return a + b
-
-
 class DebouncedEventHandler(
     FileSystemEventHandler,
 ):
@@ -123,15 +119,18 @@ class DebouncedEventHandler(
         msg["Subject"] = subject
 
         msg.attach(MIMEText(body, "plain"))
-
         try:
             with smtplib.SMTP(smtp_server, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_password)
-                text = msg.as_string()
-                server.sendmail(sender_email, receiver_email, text)
+                self.send_mail(server, msg)
+
         except Exception as e:
             print(f"Failed to send email: {e}")
+
+    def send_mail(self, server, msg):
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        text = msg.as_string()
+        server.sendmail(sender_email, receiver_email, text)
 
 
 @app.get("/track-folder-changes")
