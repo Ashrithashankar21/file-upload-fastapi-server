@@ -1,8 +1,7 @@
 import time
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
-import os
-import csv
+from handlers.log_handler import ensure_csv_exists, log_event
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -30,7 +29,7 @@ class DebouncedEventHandler(
         super().__init__(*args, **kwargs)
         self.event_timers = {}
         self.csv_file_path = csv_file_path
-        self.ensure_csv_exists()
+        ensure_csv_exists(self.csv_file_path)
 
     def _debounce(self, event_type, event):
         if event.src_path in self.event_timers:
@@ -38,7 +37,7 @@ class DebouncedEventHandler(
 
         def handle_event():
             if event.src_path.endswith(CSV_FILE_EXTENSION):
-                self.log_event(event_type, event.src_path)
+                log_event(self.csv_file_path, event_type, event.src_path)
                 self.send_email(event_type, event.src_path)
 
             del self.event_timers[event.src_path]
@@ -55,20 +54,6 @@ class DebouncedEventHandler(
 
     def on_deleted(self, event):
         self._debounce("deleted", event)
-
-    def ensure_csv_exists(self) -> None:
-        """Create the CSV file if it does not exist."""
-        if not os.path.isfile(self.csv_file_path):
-            with open(self.csv_file_path, "w", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow(["Event Type", "File Path", "Timestamp"])
-
-    def log_event(self, event_type, file_path):
-        """Append the event details to the CSV file."""
-        with open(self.csv_file_path, "a", newline="") as file:
-            writer = csv.writer(file)
-            time_stamp = time.strftime("%Y-%m-%d %H:%M:%S")
-            writer.writerow([event_type, file_path, time_stamp])
 
     def send_email(self, event_type, file_path):
         """Send an email notification."""

@@ -6,7 +6,7 @@ import tempfile
 from watchdog.events import FileSystemEvent
 from main import app
 from handlers.file_handlers import DebouncedEventHandler
-
+from handlers.log_handler import log_event
 
 client = TestClient(app)
 
@@ -46,7 +46,7 @@ def test_log_event(temp_csv_file):
 
     test_event_type = "modified"
     test_file_path = "test.csv"
-    handler.log_event(test_event_type, test_file_path)
+    log_event(temp_csv_file, test_event_type, test_file_path)
 
     with open(temp_csv_file, "r") as f:
         lines = f.readlines()
