@@ -30,7 +30,7 @@ def temp_csv_file(temp_directory):
 @patch("file_upload_tracker.main.smtp_port", 587)
 @patch("file_upload_tracker.main.smtp_user", "your_test_email@example.com")
 @patch("file_upload_tracker.main.smtp_password", "your_test_password")
-def test_send_email(mock_smtp, mock_send_mail, temp_csv_file):
+def test_send_email(mock_send_mail, temp_csv_file):
     handler = DebouncedEventHandler(csv_file_path=temp_csv_file)
 
     mock_event = MagicMock(spec=FileSystemEvent)
@@ -94,7 +94,7 @@ def test_ensure_csv_exists(temp_directory):
 
 
 def test_track_folder_changes(temp_directory):
-    response = client.get("/track-folder-changes")
+    response = client.get("/track-file-changes")
     assert response.status_code == 200
     assert response.json() == {"message": "File Upload Tracker is running."}
 
