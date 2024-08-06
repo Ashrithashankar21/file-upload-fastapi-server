@@ -1,7 +1,7 @@
 import time
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
-from handlers.log_handler import ensure_csv_exists, log_event
+from handlers.log_handlers import ensure_csv_exists, log_event
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

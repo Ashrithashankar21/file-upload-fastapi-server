@@ -6,7 +6,7 @@ import tempfile
 from watchdog.events import FileSystemEvent
 from main import app
 from handlers.file_handlers import DebouncedEventHandler
-from handlers.log_handler import log_event
+from handlers.log_handlers import log_event
 
 client = TestClient(app)
 
