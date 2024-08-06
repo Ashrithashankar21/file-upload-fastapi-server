@@ -8,13 +8,14 @@ import csv
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import uvicorn
+
 from dotenv import load_dotenv
 
 CSV_FILE_EXTENSION = ".csv"
 
 load_dotenv()
 
-# Retrieve configurations from environment variables
 folder_to_track = os.getenv("FOLDER_TO_TRACK")
 file_tracker = os.getenv("FILE_TRACKER")
 smtp_server = os.getenv("SMTP_SERVER")
@@ -24,18 +25,17 @@ smtp_password = os.getenv("SMTP_PASSWORD")
 sender_email = os.getenv("SENDER_EMAIL")
 receiver_email = os.getenv("RECEIVER_EMAIL")
 
-app = FastAPI()
-
+print(receiver_email)
 if not folder_to_track:
     raise ValueError(
         "Environment variable FOLDER_TO_TRACK\
-                     is not set or is empty."
+ is not set or is empty."
     )
 
 if not file_tracker:
     raise ValueError(
         "Environment variable FILE_TRACKER\
-                     is not set or is empty."
+ is not set or is empty."
     )
 
 if (
@@ -47,12 +47,26 @@ if (
     or not receiver_email
 ):
     raise ValueError(
-        "Email configuration is not set properly in the environment variables."
+        "Email configuration is not set properly in\
+ the environment variables."
     )
 
+app = FastAPI()
 
-class DebouncedEventHandler(FileSystemEventHandler):
-    def __init__(self, csv_file_path, *args, **kwargs):
+
+def add(a, b):
+    return a + b
+
+
+class DebouncedEventHandler(
+    FileSystemEventHandler,
+):
+    def __init__(
+        self,
+        csv_file_path,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.event_timers = {}
         self.csv_file_path = csv_file_path
@@ -101,7 +115,7 @@ class DebouncedEventHandler(FileSystemEventHandler):
         subject = f"File System Event: {event_type}"
         time_stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         body = f"Event Type: {event_type}\nFile Path: {file_path}\nTime\
-            stamp: {time_stamp}"
+ stamp: {time_stamp}"
 
         msg = MIMEMultipart()
         msg["From"] = sender_email
@@ -122,6 +136,7 @@ class DebouncedEventHandler(FileSystemEventHandler):
 
 @app.get("/track-folder-changes")
 def track_folder_changes():
+
     path = folder_to_track
     event_handler = DebouncedEventHandler(file_tracker)
     observer = Observer()
@@ -135,3 +150,14 @@ def track_folder_changes():
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="local\
+host",
+        port=8000,
+        reload=False,
+        workers=1,
+    )
