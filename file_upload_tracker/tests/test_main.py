@@ -11,6 +11,16 @@ from handlers.mail_handlers import send_mail
 client = TestClient(app)
 
 
+@pytest.fixture(scope="function", autouse=True)
+def set_env_variables(monkeypatch):
+    monkeypatch.setenv("SMTP_SERVER", "smtp.office365.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "ashritha.shankar@solitontech.com")
+    monkeypatch.setenv("SMTP_PASSWORD", "abc")
+    monkeypatch.setenv("SENDER_EMAIL", "ashritha.shankar@solitontech.com")
+    monkeypatch.setenv("RECEIVER_EMAIL", "ashritha.shankar@solitontech.com")
+
+
 @pytest.fixture
 def temp_directory():
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -56,15 +66,6 @@ def test_track_folder_changes(temp_directory):
 @patch("handlers.mail_handlers.smtplib.SMTP")
 @patch("handlers.mail_handlers.get_env_variable")
 def test_send_mail(mock_get_env_variable, mock_smtp):
-    # Set up mock environment variable returns
-    mock_get_env_variable.side_effect = {
-        "SMTP_SERVER": "smtp.office365.com",
-        "SMTP_PORT": "587",
-        "SMTP_USER": "ashritha.shankar@solitontech.com",
-        "SMTP_PASSWORD": "abc",
-        "SENDER_EMAIL": "ashritha.shankar@solitontech.com",
-        "RECEIVER_EMAIL": "ashritha.shankar@solitontech.com",
-    }.get
 
     # Create a mock SMTP instance
     mock_smtp_instance = MagicMock()
