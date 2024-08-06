@@ -5,7 +5,7 @@ import os
 import tempfile
 from watchdog.events import FileSystemEvent
 from main import app
-from handlers.handlers import DebouncedEventHandler
+from handlers.file_handlers import DebouncedEventHandler
 
 
 client = TestClient(app)
@@ -25,12 +25,12 @@ def temp_csv_file(temp_directory):
     return temp_csv_path
 
 
-@patch("handlers.handlers.smtplib.SMTP")
+@patch("handlers.file_handlers.smtplib.SMTP")
 @patch.object(DebouncedEventHandler, "send_mail")
-@patch("handlers.handlers.smtp_server", "smtp.office365.com")
-@patch("handlers.handlers.smtp_port", 587)
-@patch("handlers.handlers.smtp_user", "your_test_email@example.com")
-@patch("handlers.handlers.smtp_password", "your_test_password")
+@patch("handlers.file_handlers.smtp_server", "smtp.office365.com")
+@patch("handlers.file_handlers.smtp_port", 587)
+@patch("handlers.file_handlers.smtp_user", "your_test_email@example.com")
+@patch("handlers.file_handlers.smtp_password", "your_test_password")
 def test_send_email(mock_send_mail, temp_csv_file):
     handler = DebouncedEventHandler(csv_file_path=temp_csv_file)
 
@@ -56,10 +56,10 @@ def test_log_event(temp_csv_file):
     assert test_file_path in lines[1]
 
 
-@patch("handlers.handlers.smtp_user", "your_test_email@example.com")
-@patch("handlers.handlers.smtp_password", "your_test_password")
-@patch("handlers.handlers.sender_email", "sender@example.com")
-@patch("handlers.handlers.receiver_email", "receiver@example.com")
+@patch("handlers.file_handlers.smtp_user", "your_test_email@example.com")
+@patch("handlers.file_handlers.smtp_password", "your_test_password")
+@patch("handlers.file_handlers.sender_email", "sender@example.com")
+@patch("handlers.file_handlers.receiver_email", "receiver@example.com")
 def test_send_mail(temp_csv_file):
     # Create a mock SMTP instance
     mock_smtp_instance = MagicMock()

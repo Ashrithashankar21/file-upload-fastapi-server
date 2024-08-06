@@ -1,19 +1,18 @@
 from fastapi import FastAPI
-from routers import file_upload_tracker
+from routers.file_tracker_router import router
 import uvicorn
 
 
 app = FastAPI()
 
 
-app.include_router(file_upload_tracker.router)
+app.include_router(router)
 
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="local\
-host",
+        host="localhost",
         port=8000,
-        reload=False,
+        reload=True,
         workers=1,
     )

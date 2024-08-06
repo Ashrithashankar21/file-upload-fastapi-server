@@ -6,33 +6,16 @@ import csv
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
-
+from utils.load_env import get_env_variable
 
 CSV_FILE_EXTENSION = ".csv"
 
-load_dotenv()
-
-smtp_server = os.getenv("SMTP_SERVER")
-smtp_port = os.getenv("SMTP_PORT")
-smtp_user = os.getenv("SMTP_USER")
-smtp_password = os.getenv("SMTP_PASSWORD")
-sender_email = os.getenv("SENDER_EMAIL")
-receiver_email = os.getenv("RECEIVER_EMAIL")
-
-
-if (
-    not smtp_server
-    or not smtp_port
-    or not smtp_user
-    or not smtp_password
-    or not sender_email
-    or not receiver_email
-):
-    raise ValueError(
-        "Email configuration is not set properly in\
- the environment variables."
-    )
+smtp_server = get_env_variable("SMTP_SERVER")
+smtp_port = get_env_variable("SMTP_PORT")
+smtp_user = get_env_variable("SMTP_USER")
+smtp_password = get_env_variable("SMTP_PASSWORD")
+sender_email = get_env_variable("SENDER_EMAIL")
+receiver_email = get_env_variable("RECEIVER_EMAIL")
 
 
 class DebouncedEventHandler(
@@ -73,8 +56,8 @@ class DebouncedEventHandler(
     def on_deleted(self, event):
         self._debounce("deleted", event)
 
-    def ensure_csv_exists(self):
-        """Create the CSV file with headers if it does not exist."""
+    def ensure_csv_exists(self) -> None:
+        """Create the CSV file if it does not exist."""
         if not os.path.isfile(self.csv_file_path):
             with open(self.csv_file_path, "w", newline="") as file:
                 writer = csv.writer(file)

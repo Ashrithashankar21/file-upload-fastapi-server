@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "template-project"
+name = "file-upload-tracker"
 version = "0.1.0"
-description = "template python project to get started"
+description = "file upload tracker"
 authors = ["Soliton"]
 readme = "README.md"
 packages = [{ include = "*", from = "src" }]
