@@ -500,6 +500,17 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "log-events"
+version = "0.1.0"
+description = "A util to log events"
+optional = false
+python-versions = "<4.0,>=3.12"
+files = [
+    {file = "log_events-0.1.0-py3-none-any.whl", hash = "sha256:6fcc24f2ef093b7d8b9b1ad23c8c6ca849c30bda99047ab2ba3150231f82c443"},
+    {file = "log_events-0.1.0.tar.gz", hash = "sha256:a68b14605d52bff4295b5eaaedabe58c2c023175a6057e466fddd285e06db089"},
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -1417,4 +1428,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12"
-content-hash = "5d5afe8d92fc081da8983f74ed8494d2cd8460c09387a1173872c51ce2f06370"
+content-hash = "7756eed5981e8b911d0291fb74b63479316877aa5149628aa5f2b55fe68ae422"

@@ -1,6 +1,6 @@
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
-from src.handlers.log_handlers import ensure_csv_exists, log_event
+from log_events import ensure_csv_exists, log_event
 from watchdog.events import FileSystemEvent
 from src.config import settings
 from email_handler import send_email
