@@ -81,31 +81,5 @@ def test_track_folder_changes():
     assert response.json() == {"message": "File Upload Tracker is running."}
 
 
-@patch("src.handlers.mail_handlers.smtplib.SMTP")
-def test_send_mail(mock_smtp):
-
-    # Create a mock SMTP instance
-    mock_smtp_instance = MagicMock()
-    mock_smtp.return_value = mock_smtp_instance
-
-    # Create a mock email message
-    mock_msg = MagicMock()
-    mock_msg.as_string.return_value = "mock email string"
-
-    # Call the send_mail function
-    send_mail(mock_smtp_instance, mock_msg)
-
-    # Assert the correct setup of the SMTP instance
-    mock_smtp_instance.starttls.assert_called_once()
-    mock_smtp_instance.login.assert_called_once_with(
-        "ashritha.shankar@solitontech.com", ANY
-    )
-    mock_smtp_instance.sendmail.assert_called_once_with(
-        "ashritha.shankar@solitontech.com",
-        "ashritha.shankar@solitontech.com",
-        "mock email string",
-    )
-
-
 if __name__ == "__main__":
     pytest.main()

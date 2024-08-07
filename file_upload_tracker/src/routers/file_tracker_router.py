@@ -5,7 +5,6 @@ from src.config import settings
 from datetime import datetime
 import csv
 
-
 router = APIRouter(tags=["Track File Changes"])
 folder_path = "personal/ashritha_shankar_solitontech_com/Documents/onedrive\
 -tracker"

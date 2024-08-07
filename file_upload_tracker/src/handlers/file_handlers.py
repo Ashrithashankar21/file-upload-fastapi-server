@@ -1,10 +1,19 @@
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
 from src.handlers.log_handlers import ensure_csv_exists, log_event
-from src.handlers.mail_handlers import send_email
 from watchdog.events import FileSystemEvent
+from src.config import settings
+from email_handler import send_email
 
 CSV_FILE_EXTENSION = ".csv"
+
+# Load environment variables
+smtp_server = settings.smtp_server
+smtp_port = settings.smtp_port
+smtp_user = settings.smtp_user
+smtp_password = settings.smtp_password
+sender_email = settings.sender_email
+receiver_email = settings.receiver_email
 
 
 class DebouncedEventHandler(
@@ -62,7 +71,16 @@ class DebouncedEventHandler(
             """
             if event.src_path.endswith(CSV_FILE_EXTENSION):
                 log_event(self.csv_file_path, event_type, event.src_path)
-                send_email(event_type, event.src_path)
+                send_email(
+                    event_type,
+                    event.src_path,
+                    settings.smtp_server,
+                    settings.smtp_port,
+                    settings.smtp_user,
+                    settings.smtp_password,
+                    settings.sender_email,
+                    settings.receiver_email,
+                )
 
             del self.event_timers[event.src_path]
 
