@@ -3,10 +3,10 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock, ANY
 import os
 import tempfile
-from main import app
-from handlers.file_handlers import DebouncedEventHandler
-from handlers.log_handlers import log_event
-from handlers.mail_handlers import send_mail
+from src.main import app
+from src.handlers.file_handlers import DebouncedEventHandler
+from src.handlers.log_handlers import log_event
+from src.handlers.mail_handlers import send_mail
 
 client = TestClient(app)
 
@@ -81,9 +81,8 @@ def test_track_folder_changes():
     assert response.json() == {"message": "File Upload Tracker is running."}
 
 
-@patch("handlers.mail_handlers.smtplib.SMTP")
-@patch("handlers.mail_handlers.get_env_variable")
-def test_send_mail(mock_get_env_variable, mock_smtp):
+@patch("src.handlers.mail_handlers.smtplib.SMTP")
+def test_send_mail(mock_smtp):
 
     # Create a mock SMTP instance
     mock_smtp_instance = MagicMock()

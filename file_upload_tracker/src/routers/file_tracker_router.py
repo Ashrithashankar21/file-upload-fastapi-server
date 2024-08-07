@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status
-from handlers.observer_handlers import initialize_observer, start_observer
-from utils.load_env import get_env_variable
+from src.handlers.observer_handlers import initialize_observer, start_observer
+from src.config import settings
 
 router = APIRouter(tags=["Track File Changes"])
 
@@ -17,8 +17,8 @@ def track_file_changes():
     Returns:
         dict: A dictionary containing the status of the observer.
     """
-    folder_to_track = get_env_variable("FOLDER_TO_TRACK")
-    file_tracker = get_env_variable("FILE_TRACKER")
+    folder_to_track = settings.FOLDER_TO_TRACK
+    file_tracker = settings.FILE_TRACKER
 
     observer = initialize_observer(folder_to_track, file_tracker)
     return start_observer(observer)

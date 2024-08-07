@@ -1,5 +1,5 @@
 import time
-from handlers.file_handlers import DebouncedEventHandler
+from src.handlers.file_handlers import DebouncedEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 

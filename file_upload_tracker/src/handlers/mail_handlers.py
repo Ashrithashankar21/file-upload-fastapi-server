@@ -3,15 +3,16 @@ from smtplib import SMTP
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from utils.load_env import get_env_variable
+from src.config import settings
 
 # Load environment variables
-smtp_server = get_env_variable("SMTP_SERVER")
-smtp_port = get_env_variable("SMTP_PORT")
-smtp_user = get_env_variable("SMTP_USER")
-smtp_password = get_env_variable("SMTP_PASSWORD")
-sender_email = get_env_variable("SENDER_EMAIL")
-receiver_email = get_env_variable("RECEIVER_EMAIL")
+smtp_server = settings.SMTP_SERVER
+smtp_port = settings.SMTP_PORT
+smtp_user = settings.SMTP_USER
+smtp_password = settings.SMTP_PASSWORD
+sender_email = settings.SENDER_EMAIL
+receiver_email = settings.RECEIVER_EMAIL
+print(smtp_password)
 
 
 def send_email(event_type: str, file_path: str):

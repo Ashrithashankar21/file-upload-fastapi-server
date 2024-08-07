@@ -1,7 +1,7 @@
 from watchdog.events import FileSystemEventHandler
 from threading import Timer
-from handlers.log_handlers import ensure_csv_exists, log_event
-from handlers.mail_handlers import send_email
+from src.handlers.log_handlers import ensure_csv_exists, log_event
+from src.handlers.mail_handlers import send_email
 from watchdog.events import FileSystemEvent
 
 CSV_FILE_EXTENSION = ".csv"
