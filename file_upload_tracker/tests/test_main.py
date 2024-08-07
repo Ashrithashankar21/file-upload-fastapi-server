@@ -22,22 +22,22 @@ def set_env_variables(monkeypatch):
         and restore attributes, dictionaries, environment variables, etc.
 
     This fixture sets the following environment variables:
-        - SMTP_SERVER: The SMTP server address.
-        - SMTP_PORT: The SMTP server port.
-        - SMTP_USER: The SMTP server username.
-        - SMTP_PASSWORD: The SMTP server password.
-        - SENDER_EMAIL: The sender's email address.
-        - RECEIVER_EMAIL: The receiver's email address.
+        - smtp_server: The SMTP server address.
+        - smtp_port: The SMTP server port.
+        - smtp_user: The SMTP server username.
+        - smtp_password: The SMTP server password.
+        - sender_email: The sender's email address.
+        - receiver_email: The receiver's email address.
 
     The fixture is automatically used for each test function due to
     the `autouse=True` parameter.
     """
-    monkeypatch.setenv("SMTP_SERVER", "smtp.office365.com")
-    monkeypatch.setenv("SMTP_PORT", "587")
-    monkeypatch.setenv("SMTP_USER", "ashritha.shankar@solitontech.com")
-    monkeypatch.setenv("SMTP_PASSWORD", "abc")
-    monkeypatch.setenv("SENDER_EMAIL", "ashritha.shankar@solitontech.com")
-    monkeypatch.setenv("RECEIVER_EMAIL", "ashritha.shankar@solitontech.com")
+    monkeypatch.setenv("smtp_server", "smtp.office365.com")
+    monkeypatch.setenv("smtp_port", "587")
+    monkeypatch.setenv("smtp_user", "ashritha.shankar@solitontech.com")
+    monkeypatch.setenv("smtp_password", "abc")
+    monkeypatch.setenv("sender_email", "ashritha.shankar@solitontech.com")
+    monkeypatch.setenv("receiver_email", "ashritha.shankar@solitontech.com")
 
 
 @pytest.fixture

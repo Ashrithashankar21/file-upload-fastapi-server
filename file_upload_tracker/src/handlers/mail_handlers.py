@@ -6,13 +6,12 @@ from email.mime.multipart import MIMEMultipart
 from src.config import settings
 
 # Load environment variables
-smtp_server = settings.SMTP_SERVER
-smtp_port = settings.SMTP_PORT
-smtp_user = settings.SMTP_USER
-smtp_password = settings.SMTP_PASSWORD
-sender_email = settings.SENDER_EMAIL
-receiver_email = settings.RECEIVER_EMAIL
-print(smtp_password)
+smtp_server = settings.smtp_server
+smtp_port = settings.smtp_port
+smtp_user = settings.smtp_user
+smtp_password = settings.smtp_password
+sender_email = settings.sender_email
+receiver_email = settings.receiver_email
 
 
 def send_email(event_type: str, file_path: str):

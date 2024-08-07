@@ -2,14 +2,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    FOLDER_TO_TRACK: str
-    FILE_TRACKER: str
-    SMTP_SERVER: str
-    SMTP_PORT: int
-    SMTP_USER: str
-    SMTP_PASSWORD: str
-    SENDER_EMAIL: str
-    RECEIVER_EMAIL: str
+    folder_to_track: str
+    file_tracker: str
+    smtp_server: str
+    smtp_port: int
+    smtp_user: str
+    smtp_password: str
+    sender_email: str
+    receiver_email: str
     model_config = SettingsConfigDict(env_file=".env")
 
 
