@@ -8,7 +8,7 @@ packages = [{ include = "*", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "3.12"
-fastapi = {extras = ["standard"], version = "^0.112.0"}
+fastapi = {extras = ["all"], version = "^0.112.0"}
 uvicorn = "^0.30.5"
 watchdog = "^4.0.1"
 python-dotenv = "^1.0.1"
@@ -17,6 +17,8 @@ pydantic-settings = "^2.4.0"
 requests = "^2.32.3"
 email_handler = "^0.2.0"
 log-events = "^0.1.0"
+httpx = "^0.27.0"
+msal = "^1.30.0"
 
 [tool.poetry.group.dev.dependencies]
 pydocstyle = "^6.3.0"

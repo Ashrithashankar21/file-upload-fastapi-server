@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     client_secret_id: str
     auth_url: str
     one_drive_file_tracker: str
+    tenant_id: str
     model_config = SettingsConfigDict(env_file=".env")
 
 
