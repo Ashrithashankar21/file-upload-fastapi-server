@@ -20,7 +20,7 @@ from log_events import ensure_csv_exists, log_event
 from email_handler import send_email
 import asyncio
 
-router = APIRouter(tags=["Track File Changes"])
+router = APIRouter()
 tasks = {}
 task_running = False
 # Global state to store access_token and delta_link
@@ -37,7 +37,7 @@ msal_app = msal.PublicClientApplication(settings.client_id, authority=authority)
 FOLDER_NAME = "one-drive-tracker"
 
 
-@router.get("/authorize")
+@router.get("/authorize", tags=["Authorize"])
 async def authorize():
     auth_url = msal_app.get_authorization_request_url(
         scopes=scope, redirect_uri=REDIRECT_URL
@@ -46,7 +46,7 @@ async def authorize():
     return RedirectResponse(auth_url)
 
 
-@router.get("/callback")
+@router.get("/callback", include_in_schema=False)
 async def callback(request: Request):
     code = request.query_params.get("code")
     if not code:
@@ -71,7 +71,7 @@ async def callback(request: Request):
     return {"message": "Authorization successful"}
 
 
-@router.post("/upload-file")
+@router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
     access_token = global_state.get("access_token")
 
@@ -94,7 +94,11 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
 
-@router.get("/track-local-file-changes", status_code=status.HTTP_200_OK)
+@router.get(
+    "/track-local-file-changes",
+    status_code=status.HTTP_200_OK,
+    tags=["Track file changes"],
+)
 def track_local_file_changes():
     folder_to_track = settings.folder_to_track
     file_tracker = settings.file_tracker
@@ -193,7 +197,10 @@ async def shutdown_event():
     print("All tasks stopped.")
 
 
-@router.get("/track-changes-in-one-drive")
+@router.get(
+    "/track-changes-in-one-drive",
+    tags=["Track file changes"],
+)
 async def track_changes_in_one_drive(request: Request):
     access_token = global_state.get("access_token")
     if not access_token:
