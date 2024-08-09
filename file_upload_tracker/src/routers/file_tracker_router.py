@@ -11,7 +11,7 @@ from src.config import settings
 import msal
 import httpx
 import webbrowser
-from src.handlers.one_drive_file_handler import (
+from src.handlers.one_drive_file_handlers import (
     upload_file_to_one_drive,
     track_file_changes,
 )
