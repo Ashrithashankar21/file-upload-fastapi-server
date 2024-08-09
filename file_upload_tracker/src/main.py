@@ -2,23 +2,15 @@ from fastapi import FastAPI
 from src.routers.file_tracker_router import router
 import uvicorn
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi.middleware.cors import CORSMiddleware
+from src.config import settings
 
-# Initialize the FastAPI application
 app = FastAPI()
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key="ash",
+    secret_key=settings.client_id,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Include the router from the file_tracker_router module
 app.include_router(router)

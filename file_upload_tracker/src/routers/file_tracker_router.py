@@ -11,15 +11,11 @@ from src.config import settings
 import msal
 import httpx
 import webbrowser
-import aiohttp
-from typing import List, Dict
-import json
-from pathlib import Path
-from log_events import ensure_csv_exists, log_event
-from email_handler import send_email
+from src.handlers.one_drive_file_handler import (
+    upload_file_to_one_drive,
+    track_file_changes,
+)
 import asyncio
-from src.utils.auth_util import get_access_token
-from src.handlers.one_drive_file_handler import upload_file_to_one_drive
 
 router = APIRouter()
 tasks = {}
@@ -35,6 +31,17 @@ token_url = f"https://login.microsoftonline.com/{settings.tenant_id}/oauth2/v2.0
 scope = ["User.Read", "Files.Read", "Files.ReadWrite"]
 
 msal_app = msal.PublicClientApplication(settings.client_id, authority=authority)
+
+
+@router.on_event("shutdown")
+async def shutdown_event():
+    global tasks
+    print("Shutting down server. Stopping all tasks...")
+    for task_id in list(tasks.keys()):
+        tasks[task_id] = False
+    await asyncio.sleep(1)
+    tasks.clear()
+    print("All tasks stopped.")
 
 
 @router.get("/authorize", tags=["Authorize"])
@@ -71,9 +78,7 @@ async def callback(request: Request):
 
 @router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
-    access_token = get_access_token(global_state)
-    file_content = await file.read()
-    return await upload_file_to_one_drive(access_token, file, file_content)
+    return await upload_file_to_one_drive(global_state, file)
 
 
 @router.get(
@@ -89,124 +94,9 @@ def track_local_file_changes():
     return start_observer(observer)
 
 
-def load_local_record() -> Dict[str, str]:
-    if Path(settings.one_drive_record_file).exists():
-        with open(settings.one_drive_record_file, "r") as file:
-            return json.load(file)
-    return {}
-
-
-def save_local_record(record: Dict[str, str]):
-    with open(settings.one_drive_record_file, "w") as file:
-        json.dump(record, file)
-
-
-def save_changes_to_csv(changes: List[Dict[str, str]]):
-    local_record = load_local_record()
-
-    for change in changes:
-        item_id = change.get("id", "unknown")
-        change_type = change.get("deleted", {}).get("state") or change.get(
-            "changeType", "updated" if item_id in local_record else "created"
-        )
-        item_name = change.get("name", "Unknown")
-
-        if item_name.startswith(settings.one_drive_folder_to_track):
-            continue
-
-        if change_type == "deleted":
-            item_name = local_record.pop(item_id, "Unknown")
-        else:
-            local_record[item_id] = item_name
-        log_event(settings.one_drive_file_tracker, change_type, item_name)
-        send_email(
-            change_type,
-            item_name,
-            settings.smtp_server,
-            settings.smtp_port,
-            settings.smtp_user,
-            settings.smtp_password,
-            settings.sender_email,
-            settings.receiver_email,
-        )
-
-    save_local_record(local_record)
-
-
-async def poll_changes():
-    delta_link = global_state.get("delta_link")
-    access_token = get_access_token(global_state)
-    if not delta_link:
-        return {
-            "message": "No delta link found. Start with /track-changes-in-one-drive."
-        }
-
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(delta_link, headers=headers) as response:
-            delta_data = await response.json()
-
-    global_state["delta_link"] = delta_data["@odata.deltaLink"]
-    changes = delta_data.get("value", [])
-    return {"changes": changes}
-
-
-async def save_changes():
-
-    changes = await poll_changes()
-    save_changes_to_csv(changes.get("changes", []))
-    return {"message": "Changes saved to CSV"}
-
-
-async def periodic_task(task_id: str):
-    while tasks.get(task_id):
-        await save_changes()
-        await asyncio.sleep(1)
-
-
-@router.on_event("shutdown")
-async def shutdown_event():
-    global tasks
-    print("Shutting down server. Stopping all tasks...")
-    for task_id in list(tasks.keys()):
-        tasks[task_id] = False
-    await asyncio.sleep(1)
-    tasks.clear()
-    print("All tasks stopped.")
-
-
 @router.get(
     "/track-changes-in-one-drive",
     tags=["Track file changes"],
 )
-async def track_changes_in_one_drive(request: Request):
-    access_token = get_access_token(global_state)
-
-    graph_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{settings.one_drive_folder_to_track}:/delta"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(graph_url, headers=headers) as response:
-            if response.status == 401:
-                raise HTTPException(status_code=401, detail="Unauthorized")
-            delta_data = await response.json()
-
-    global_state["delta_link"] = delta_data["@odata.deltaLink"]
-    changes = delta_data.get("value", [])
-    local_record = {}
-    for change in changes:
-        if change.get("changeType") != "deleted":
-            local_record[change.get("id")] = change.get("name")
-
-    ensure_csv_exists(settings.one_drive_file_tracker)
-    save_local_record(local_record)
-    global task_running
-    task_id = "unique_task_id_for_this_endpoint"
-
-    if task_id not in tasks:
-        task_running = True
-        tasks[task_id] = True
-        asyncio.create_task(periodic_task(task_id))
-
-    return {"message": "Tracking changes in OneDrive"}
+async def track_changes_in_one_drive():
+    return await track_file_changes(global_state, tasks)
