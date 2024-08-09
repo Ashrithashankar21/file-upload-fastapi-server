@@ -19,21 +19,20 @@ from pathlib import Path
 from log_events import ensure_csv_exists, log_event
 from email_handler import send_email
 
+
 router = APIRouter(tags=["Track File Changes"])
 
+# Global state to store access_token and delta_link
+global_state = {"access_token": None, "delta_link": None}
 
 REDIRECT_URL = "http://localhost:8000/callback"
 SCOPES = "User.Read Files.Read Files.ReadWrite"
-AUTHORIZATION_BASE_URL = (
-    f"https://login.microsoftonline.com/{settings.tenant_id}/oauth2/v2.0/authorize"
-)
 GRAPH_API_URL = "https://graph.microsoft.com/v1.0"
 
 authority = f"https://login.microsoftonline.com/{settings.tenant_id}"
 scope = ["User.Read", "Files.Read", "Files.ReadWrite"]
 
 msal_app = msal.PublicClientApplication(settings.client_id, authority=authority)
-
 FOLDER_NAME = "one-drive-tracker"
 
 
@@ -67,13 +66,14 @@ async def callback(request: Request):
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     response.raise_for_status()
-    return response.json()["access_token"]
+    global_state["access_token"] = response.json()["access_token"]
+    return {"message": "Authorization successful"}
 
 
-@router.post(
-    "/upload-file",
-)
-async def upload_file(access_token: str, file: UploadFile = File(...)):
+@router.post("/upload-file")
+async def upload_file(file: UploadFile = File(...)):
+    access_token = global_state.get("access_token")
+
     file_content = await file.read()
 
     headers = {
@@ -95,16 +95,6 @@ async def upload_file(access_token: str, file: UploadFile = File(...)):
 
 @router.get("/track-local-file-changes", status_code=status.HTTP_200_OK)
 def track_local_file_changes():
-    """
-     Endpoint to track file changes in a specified folder.
-
-    This endpoint initializes a file observer to monitor changes in the folder
-    specified by the environment variable "folder_to_track" and uses the file
-    tracker specified by the environment variable "file_tracker".
-
-    Returns:
-        dict: A dictionary containing the status of the observer.
-    """
     folder_to_track = settings.folder_to_track
     file_tracker = settings.file_tracker
 
@@ -116,7 +106,6 @@ LOCAL_RECORD_FILE = "C:/Users/ashritha.shankar/Documents/onedrive-data.csv"
 
 
 def load_local_record() -> Dict[str, str]:
-    """Load the local record of file names and IDs."""
     if Path(LOCAL_RECORD_FILE).exists():
         with open(LOCAL_RECORD_FILE, "r") as file:
             return json.load(file)
@@ -124,13 +113,11 @@ def load_local_record() -> Dict[str, str]:
 
 
 def save_local_record(record: Dict[str, str]):
-    """Save the local record of file names and IDs."""
     with open(LOCAL_RECORD_FILE, "w") as file:
         json.dump(record, file)
 
 
 def save_changes_to_csv(changes: List[Dict[str, str]]):
-    """Save changes to a CSV file."""
     local_record = load_local_record()
 
     for change in changes:
@@ -164,7 +151,10 @@ def save_changes_to_csv(changes: List[Dict[str, str]]):
 
 
 @router.get("/track-changes-in-one-drive")
-async def track_changes_in_one_drive(request: Request, access_token: str):
+async def track_changes_in_one_drive(request: Request):
+    access_token = global_state.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
 
     graph_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{FOLDER_NAME}:/delta"
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -173,7 +163,7 @@ async def track_changes_in_one_drive(request: Request, access_token: str):
         async with session.get(graph_url, headers=headers) as response:
             delta_data = await response.json()
 
-    request.session["delta_link"] = delta_data["@odata.deltaLink"]
+    global_state["delta_link"] = delta_data["@odata.deltaLink"]
     changes = delta_data.get("value", [])
     local_record = {}
     for change in changes:
@@ -182,13 +172,16 @@ async def track_changes_in_one_drive(request: Request, access_token: str):
 
     ensure_csv_exists(settings.one_drive_file_tracker)
     save_local_record(local_record)
-    return {"changes": changes}
+    return {"message": "Tracking changes in OneDrive"}
 
 
-async def poll_changes(request: Request, access_token: str):
-    delta_link = request.session.get("delta_link")
+async def poll_changes():
+    delta_link = global_state.get("delta_link")
+    access_token = global_state.get("access_token")
     if not delta_link:
-        return {"message": "No delta link found. Start with /track-changes."}
+        return {
+            "message": "No delta link found. Start with /track-changes-in-one-drive."
+        }
 
     headers = {"Authorization": f"Bearer {access_token}"}
 
@@ -196,13 +189,14 @@ async def poll_changes(request: Request, access_token: str):
         async with session.get(delta_link, headers=headers) as response:
             delta_data = await response.json()
 
-    request.session["delta_link"] = delta_data["@odata.deltaLink"]
+    global_state["delta_link"] = delta_data["@odata.deltaLink"]
     changes = delta_data.get("value", [])
     return {"changes": changes}
 
 
 @router.get("/save-changes")
-async def save_changes(request: Request, access_token: str):
-    changes = await poll_changes(request, access_token)
+async def save_changes():
+
+    changes = await poll_changes()
     save_changes_to_csv(changes.get("changes", []))
     return {"message": "Changes saved to CSV"}
