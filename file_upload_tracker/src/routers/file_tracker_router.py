@@ -18,6 +18,8 @@ from pathlib import Path
 from log_events import ensure_csv_exists, log_event
 from email_handler import send_email
 import asyncio
+from src.utils.auth_util import get_access_token
+from src.handlers.one_drive_file_handler import upload_file_to_one_drive
 
 router = APIRouter()
 tasks = {}
@@ -69,28 +71,9 @@ async def callback(request: Request):
 
 @router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
-    access_token = global_state.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Access token is missing")
+    access_token = get_access_token(global_state)
     file_content = await file.read()
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/octet-stream",
-    }
-
-    user_id = "ashritha.shankar@solitontech.in"
-    upload_url = f"{GRAPH_API_URL}/users/{user_id}/drive/root:/{settings.one_drive_folder_to_track}/{file.filename}:/content"
-
-    async with httpx.AsyncClient() as client:
-        response = await client.put(upload_url, headers=headers, content=file_content)
-
-    if response.status_code == 201:
-        return {"message": "File uploaded successfully"}
-    elif response.status_code == 401:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    else:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+    return await upload_file_to_one_drive(access_token, file, file_content)
 
 
 @router.get(
@@ -152,7 +135,7 @@ def save_changes_to_csv(changes: List[Dict[str, str]]):
 
 async def poll_changes():
     delta_link = global_state.get("delta_link")
-    access_token = global_state.get("access_token")
+    access_token = get_access_token(global_state)
     if not delta_link:
         return {
             "message": "No delta link found. Start with /track-changes-in-one-drive."
@@ -198,9 +181,7 @@ async def shutdown_event():
     tags=["Track file changes"],
 )
 async def track_changes_in_one_drive(request: Request):
-    access_token = global_state.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Access token is missing")
+    access_token = get_access_token(global_state)
 
     graph_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{settings.one_drive_folder_to_track}:/delta"
     headers = {"Authorization": f"Bearer {access_token}"}
