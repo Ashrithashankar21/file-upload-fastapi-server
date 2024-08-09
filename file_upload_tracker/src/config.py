@@ -12,9 +12,10 @@ class Settings(BaseSettings):
     receiver_email: str
     client_id: str
     client_secret_id: str
-    auth_url: str
     one_drive_file_tracker: str
     tenant_id: str
+    one_drive_record_file: str
+    one_drive_folder_to_track: str
     model_config = SettingsConfigDict(env_file=".env")
 
 

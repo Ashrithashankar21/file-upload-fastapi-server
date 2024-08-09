@@ -8,7 +8,6 @@ from fastapi import (
 )
 from src.handlers.observer_handlers import initialize_observer, start_observer
 from src.config import settings
-from fastapi.responses import RedirectResponse
 import msal
 import httpx
 import webbrowser
@@ -30,22 +29,19 @@ SCOPES = "User.Read Files.Read Files.ReadWrite"
 GRAPH_API_URL = "https://graph.microsoft.com/v1.0"
 
 authority = f"https://login.microsoftonline.com/{settings.tenant_id}"
+token_url = f"https://login.microsoftonline.com/{settings.tenant_id}/oauth2/v2.0/token"
 scope = ["User.Read", "Files.Read", "Files.ReadWrite"]
 
 msal_app = msal.PublicClientApplication(settings.client_id, authority=authority)
-FOLDER_NAME = "one-drive-tracker"
 
 
 @router.get("/authorize", tags=["Authorize"])
 async def authorize():
-    if global_state.get("access_token") is not None:
-        return {"message": "You are already authorized"}
-    else:
-        auth_url = msal_app.get_authorization_request_url(
-            scopes=scope, redirect_uri=REDIRECT_URL
-        )
-        webbrowser.open(auth_url)
-        return {"message": "Authorizing please wait..."}
+    auth_url = msal_app.get_authorization_request_url(
+        scopes=scope, redirect_uri=REDIRECT_URL
+    )
+    webbrowser.open(auth_url)
+    return {"message": "Authorizing please wait..."}
 
 
 @router.get("/callback", include_in_schema=False)
@@ -53,9 +49,7 @@ async def callback(request: Request):
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=400, detail="Authorization code missing")
-    token_url = (
-        f"https://login.microsoftonline.com/{settings.tenant_id}/oauth2/v2.0/token"
-    )
+
     response = httpx.post(
         token_url,
         data={
@@ -86,7 +80,7 @@ async def upload_file(file: UploadFile = File(...)):
     }
 
     user_id = "ashritha.shankar@solitontech.in"
-    upload_url = f"{GRAPH_API_URL}/users/{user_id}/drive/root:/one-drive-tracker/{file.filename}:/content"
+    upload_url = f"{GRAPH_API_URL}/users/{user_id}/drive/root:/{settings.one_drive_folder_to_track}/{file.filename}:/content"
 
     async with httpx.AsyncClient() as client:
         response = await client.put(upload_url, headers=headers, content=file_content)
@@ -112,18 +106,15 @@ def track_local_file_changes():
     return start_observer(observer)
 
 
-LOCAL_RECORD_FILE = "C:/Users/ashritha.shankar/Documents/onedrive-data.csv"
-
-
 def load_local_record() -> Dict[str, str]:
-    if Path(LOCAL_RECORD_FILE).exists():
-        with open(LOCAL_RECORD_FILE, "r") as file:
+    if Path(settings.one_drive_record_file).exists():
+        with open(settings.one_drive_record_file, "r") as file:
             return json.load(file)
     return {}
 
 
 def save_local_record(record: Dict[str, str]):
-    with open(LOCAL_RECORD_FILE, "w") as file:
+    with open(settings.one_drive_record_file, "w") as file:
         json.dump(record, file)
 
 
@@ -137,7 +128,7 @@ def save_changes_to_csv(changes: List[Dict[str, str]]):
         )
         item_name = change.get("name", "Unknown")
 
-        if item_name.startswith(FOLDER_NAME):
+        if item_name.startswith(settings.one_drive_folder_to_track):
             continue
 
         if change_type == "deleted":
@@ -211,7 +202,7 @@ async def track_changes_in_one_drive(request: Request):
     if not access_token:
         raise HTTPException(status_code=401, detail="Access token is missing")
 
-    graph_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{FOLDER_NAME}:/delta"
+    graph_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{settings.one_drive_folder_to_track}:/delta"
     headers = {"Authorization": f"Bearer {access_token}"}
 
     async with aiohttp.ClientSession() as session:
