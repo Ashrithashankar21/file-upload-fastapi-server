@@ -37,6 +37,10 @@ msal_app = msal.PublicClientApplication(
 
 @router.on_event("shutdown")
 async def shutdown_event():
+    """
+    Event handler for server shutdown. Stops all ongoing tasks and clears
+    the task list.
+    """
     global tasks
     print("Shutting down server. Stopping all tasks...")
     for task_id in list(tasks.keys()):
@@ -48,6 +52,13 @@ async def shutdown_event():
 
 @router.get("/authorize", tags=["Authorize"])
 async def authorize():
+    """
+    Initiates the OAuth2 authorization flow by redirecting the user
+    to the Microsoft login page.
+
+    Returns:
+        dict: A message indicating that authorization is in progress.
+    """
     authentication_url = msal_app.get_authorization_request_url(
         scopes=scope, redirect_uri=redirect_url
     )
@@ -57,6 +68,21 @@ async def authorize():
 
 @router.get("/callback", include_in_schema=False)
 async def callback(request: Request):
+    """
+    Handles the OAuth2 callback. Exchanges the authorization code for
+    an access token.
+
+    Args:
+        request (Request): The incoming request containing the
+        authorization code.
+
+    Returns:
+        dict: A message indicating that authorization was successful.
+
+    Raises:
+        HTTPException: If the authorization code is missing or the
+        token request fails.
+    """
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(
@@ -83,6 +109,16 @@ async def callback(request: Request):
 
 @router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
+    """
+    Uploads a file to OneDrive.
+
+    Args:
+        file (UploadFile): The file to be uploaded.
+
+    Returns:
+        dict: A message indicating whether the file upload was
+        successful or not.
+    """
     return await upload_file_to_one_drive(global_state, file)
 
 
@@ -92,6 +128,13 @@ async def upload_file(file: UploadFile = File(...)):
     tags=["Track file changes"],
 )
 def track_local_file_changes():
+    """
+    Initializes and starts an observer to track local file changes.
+
+    Returns:
+        dict: A message indicating that local file changes tracking
+        has started.
+    """
     folder_to_track = settings.folder_to_track
     file_tracker = settings.file_tracker
 
@@ -104,4 +147,12 @@ def track_local_file_changes():
     tags=["Track file changes"],
 )
 async def track_changes_in_one_drive():
+    """
+    Tracks changes in OneDrive by fetching the delta data
+    and updating the local record.
+
+    Returns:
+        dict: A message indicating that OneDrive changes
+        tracking has started.
+    """
     return await track_file_changes(global_state, tasks)
