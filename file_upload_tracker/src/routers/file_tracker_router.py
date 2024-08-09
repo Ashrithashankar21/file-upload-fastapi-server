@@ -1,18 +1,26 @@
-import requests
-from fastapi import APIRouter, status, HTTPException, UploadFile, File, Depends, Request
+from fastapi import (
+    APIRouter,
+    status,
+    HTTPException,
+    UploadFile,
+    File,
+    Request,
+)
 from src.handlers.observer_handlers import initialize_observer, start_observer
 from src.config import settings
-from datetime import datetime
-import csv
 from fastapi.responses import RedirectResponse
 import msal
 import httpx
 import webbrowser
+import aiohttp
+import csv
+from typing import List, Dict
+import json
+from pathlib import Path
 
 router = APIRouter(tags=["Track File Changes"])
 
 
-folder_path = "personal/ashritha_shankar_solitontech_in/Documents/one-drive-tracker"
 REDIRECT_URL = "http://localhost:8000/callback"
 SCOPES = "User.Read Files.Read Files.ReadWrite"
 AUTHORIZATION_BASE_URL = (
@@ -25,8 +33,10 @@ scope = ["User.Read", "Files.Read", "Files.ReadWrite"]
 
 msal_app = msal.PublicClientApplication(settings.client_id, authority=authority)
 
+FOLDER_NAME = "one-drive-tracker"
 
-@router.get("/authorize/")
+
+@router.get("/authorize")
 async def authorize():
     auth_url = msal_app.get_authorization_request_url(
         scopes=scope, redirect_uri=REDIRECT_URL
@@ -60,7 +70,7 @@ async def callback(request: Request):
 
 
 @router.post(
-    "/upload/",
+    "/upload-file",
 )
 async def upload_file(access_token: str, file: UploadFile = File(...)):
     file_content = await file.read()
@@ -80,3 +90,109 @@ async def upload_file(access_token: str, file: UploadFile = File(...)):
         return {"message": "File uploaded successfully"}
     else:
         raise HTTPException(status_code=response.status_code, detail=response.text)
+
+
+@router.get("/track-local-file-changes", status_code=status.HTTP_200_OK)
+def track_local_file_changes():
+    """
+     Endpoint to track file changes in a specified folder.
+
+    This endpoint initializes a file observer to monitor changes in the folder
+    specified by the environment variable "folder_to_track" and uses the file
+    tracker specified by the environment variable "file_tracker".
+
+    Returns:
+        dict: A dictionary containing the status of the observer.
+    """
+    folder_to_track = settings.folder_to_track
+    file_tracker = settings.file_tracker
+
+    observer = initialize_observer(folder_to_track, file_tracker)
+    return start_observer(observer)
+
+
+LOCAL_RECORD_FILE = "C:/Users/ashritha.shankar/Documents/onedrive-data.csv"
+
+
+def load_local_record() -> Dict[str, str]:
+    """Load the local record of file names and IDs."""
+    if Path(LOCAL_RECORD_FILE).exists():
+        with open(LOCAL_RECORD_FILE, "r") as file:
+            return json.load(file)
+    return {}
+
+
+def save_local_record(record: Dict[str, str]):
+    """Save the local record of file names and IDs."""
+    with open(LOCAL_RECORD_FILE, "w") as file:
+        json.dump(record, file)
+
+
+def save_changes_to_csv(changes: List[Dict[str, str]]):
+    """Save changes to a CSV file."""
+    local_record = load_local_record()
+
+    with open(settings.one_drive_file_tracker, mode="a", newline="") as file:
+        writer = csv.writer(file)
+        for change in changes:
+            item_id = change.get("id", "unknown")
+            change_type = change.get("deleted", {}).get("state") or change.get(
+                "changeType", "updated" if item_id in local_record else "created"
+            )
+            item_name = change.get("name", "Unknown")
+
+            if item_name.startswith(FOLDER_NAME):
+                continue
+
+            if change_type == "deleted":
+                item_name = local_record.pop(item_id, "Unknown")
+            else:
+                local_record[item_id] = item_name
+
+            writer.writerow([item_name, change_type, item_id])
+
+    save_local_record(local_record)
+
+
+@router.get("/track-changes-in-one-drive")
+async def track_changes_in_one_drive(request: Request, access_token: str):
+
+    graph_url = f"https://graph.microsoft.com/v1.0/me/drive/root:/{FOLDER_NAME}:/delta"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(graph_url, headers=headers) as response:
+            delta_data = await response.json()
+
+    request.session["delta_link"] = delta_data["@odata.deltaLink"]
+    changes = delta_data.get("value", [])
+    local_record = {}
+    for change in changes:
+        if change.get("changeType") != "deleted":
+            local_record[change.get("id")] = change.get("name")
+
+    save_local_record(local_record)
+    return {"changes": changes}
+
+
+async def poll_changes(request: Request, access_token: str):
+    delta_link = request.session.get("delta_link")
+    if not delta_link:
+        return {"message": "No delta link found. Start with /track-changes."}
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(delta_link, headers=headers) as response:
+            delta_data = await response.json()
+
+    request.session["delta_link"] = delta_data["@odata.deltaLink"]
+    changes = delta_data.get("value", [])
+    return {"changes": changes}
+
+
+@router.get("/save-changes")
+async def save_changes(request: Request, access_token: str):
+    changes = await poll_changes(request, access_token)
+    save_changes_to_csv(changes.get("changes", []))
+    return {"message": "Changes saved to CSV"}
