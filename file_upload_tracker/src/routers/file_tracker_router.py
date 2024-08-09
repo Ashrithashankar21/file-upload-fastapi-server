@@ -17,6 +17,7 @@ from typing import List, Dict
 import json
 from pathlib import Path
 from log_events import ensure_csv_exists, log_event
+from email_handler import send_email
 
 router = APIRouter(tags=["Track File Changes"])
 
@@ -148,6 +149,16 @@ def save_changes_to_csv(changes: List[Dict[str, str]]):
             local_record[item_id] = item_name
         print(f"{change_type}: {item_name}")
         log_event(settings.one_drive_file_tracker, change_type, item_name)
+        send_email(
+            change_type,
+            item_name,
+            settings.smtp_server,
+            settings.smtp_port,
+            settings.smtp_user,
+            settings.smtp_password,
+            settings.sender_email,
+            settings.receiver_email,
+        )
 
     save_local_record(local_record)
 
