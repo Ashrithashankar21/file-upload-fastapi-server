@@ -18,19 +18,21 @@ from src.handlers.one_drive_file_handler import (
 import asyncio
 
 router = APIRouter()
+
 tasks = {}
 task_running = False
 global_state = {"access_token": None, "delta_link": None}
 
-REDIRECT_URL = "http://localhost:8000/callback"
-SCOPES = "User.Read Files.Read Files.ReadWrite"
-GRAPH_API_URL = "https://graph.microsoft.com/v1.0"
-
-authority = f"https://login.microsoftonline.com/{settings.tenant_id}"
-token_url = f"https://login.microsoftonline.com/{settings.tenant_id}/oauth2/v2.0/token"
+redirect_url = "http://localhost:8000/callback"
+base_url = f"https://login.microsoftonline.com/{settings.tenant_id}"
+token_url = f"{base_url}/oauth2/v2.0/token"
+scopes = "User.Read Files.Read Files.ReadWrite"
 scope = ["User.Read", "Files.Read", "Files.ReadWrite"]
 
-msal_app = msal.PublicClientApplication(settings.client_id, authority=authority)
+msal_app = msal.PublicClientApplication(
+    settings.client_id,
+    authority=base_url,
+)
 
 
 @router.on_event("shutdown")
@@ -46,10 +48,10 @@ async def shutdown_event():
 
 @router.get("/authorize", tags=["Authorize"])
 async def authorize():
-    auth_url = msal_app.get_authorization_request_url(
-        scopes=scope, redirect_uri=REDIRECT_URL
+    authentication_url = msal_app.get_authorization_request_url(
+        scopes=scope, redirect_uri=redirect_url
     )
-    webbrowser.open(auth_url)
+    webbrowser.open(authentication_url)
     return {"message": "Authorizing please wait..."}
 
 
@@ -57,17 +59,20 @@ async def authorize():
 async def callback(request: Request):
     code = request.query_params.get("code")
     if not code:
-        raise HTTPException(status_code=400, detail="Authorization code missing")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authorization code missing",
+        )
 
     response = httpx.post(
         token_url,
         data={
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": REDIRECT_URL,
+            "redirect_uri": redirect_url,
             "client_id": settings.client_id,
             "client_secret": settings.client_secret_id,
-            "scope": SCOPES,
+            "scope": scopes,
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
