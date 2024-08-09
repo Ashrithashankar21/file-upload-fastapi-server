@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import List
 
 
 class Settings(BaseSettings):
@@ -9,7 +10,7 @@ class Settings(BaseSettings):
     smtp_user: str
     smtp_password: str
     sender_email: str
-    receiver_email: str
+    receiver_email: List[str]
     client_id: str
     client_secret_id: str
     one_drive_file_tracker: str

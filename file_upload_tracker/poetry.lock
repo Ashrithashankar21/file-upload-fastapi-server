@@ -540,13 +540,13 @@ wmi = ["wmi (>=1.5.1)"]
 
 [[package]]
 name = "email-handler"
-version = "0.2.0"
+version = "0.3.0"
 description = "A util to send emails"
 optional = false
 python-versions = "<4.0,>=3.12"
 files = [
-    {file = "email_handler-0.2.0-py3-none-any.whl", hash = "sha256:df00a10bc5317b621aceaa1fea47bd9d179aecda17d4b4823c9be09207085da3"},
-    {file = "email_handler-0.2.0.tar.gz", hash = "sha256:357380542242fb69022aa5c8218bbc276ae2d20bdbab6828eba42c2c075aea96"},
+    {file = "email_handler-0.3.0-py3-none-any.whl", hash = "sha256:1b9071090cfc00d6fe5b8c783e8120d97e387f37e4b66fd261155116e2cc7091"},
+    {file = "email_handler-0.3.0.tar.gz", hash = "sha256:755b21c520bf8691b421d50e3548a17e5df65dc331ce7a0846191a7d9e7985d7"},
 ]
 
 [[package]]
@@ -2220,4 +2220,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12"
-content-hash = "ade86d4b6cf8dbb0ae2db450b9979f9e62f53ed26104e9cefb6f10f1ea04b794"
+content-hash = "92da740e81a0d132dbde675c6fa31a386be5205e229f3105705889c55e34c49e"
