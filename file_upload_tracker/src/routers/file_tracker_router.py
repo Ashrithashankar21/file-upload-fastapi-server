@@ -38,11 +38,14 @@ FOLDER_NAME = "one-drive-tracker"
 
 @router.get("/authorize", tags=["Authorize"])
 async def authorize():
-    auth_url = msal_app.get_authorization_request_url(
-        scopes=scope, redirect_uri=REDIRECT_URL
-    )
-    webbrowser.open(auth_url)
-    return RedirectResponse(auth_url)
+    if global_state.get("access_token") is not None:
+        return {"message": "You are already authorized"}
+    else:
+        auth_url = msal_app.get_authorization_request_url(
+            scopes=scope, redirect_uri=REDIRECT_URL
+        )
+        webbrowser.open(auth_url)
+        return {"message": "Authorizing please wait..."}
 
 
 @router.get("/callback", include_in_schema=False)
