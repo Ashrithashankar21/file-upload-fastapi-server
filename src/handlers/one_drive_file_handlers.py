@@ -37,7 +37,7 @@ async def upload_file_to_one_drive(
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/octet-stream",
     }
-    user_id = "ashritha.shankar@solitontech.in"
+    user_id = settings.one_drive_folder_user_id
     upload_url = (
         f"{graph_api_base_url}/users/{user_id}/drive/root:"
         f"/{folder_path}/{file.filename}:/content"
