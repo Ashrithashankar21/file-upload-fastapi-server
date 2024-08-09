@@ -23,7 +23,6 @@ import asyncio
 router = APIRouter()
 tasks = {}
 task_running = False
-# Global state to store access_token and delta_link
 global_state = {"access_token": None, "delta_link": None}
 
 REDIRECT_URL = "http://localhost:8000/callback"
@@ -42,7 +41,7 @@ async def authorize():
     auth_url = msal_app.get_authorization_request_url(
         scopes=scope, redirect_uri=REDIRECT_URL
     )
-    webbrowser.open(auth_url)  # Open in browser
+    webbrowser.open(auth_url)
     return RedirectResponse(auth_url)
 
 
@@ -74,7 +73,8 @@ async def callback(request: Request):
 @router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
     access_token = global_state.get("access_token")
-
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Access token is missing")
     file_content = await file.read()
 
     headers = {
@@ -90,6 +90,8 @@ async def upload_file(file: UploadFile = File(...)):
 
     if response.status_code == 201:
         return {"message": "File uploaded successfully"}
+    elif response.status_code == 401:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     else:
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
@@ -192,7 +194,7 @@ async def shutdown_event():
     print("Shutting down server. Stopping all tasks...")
     for task_id in list(tasks.keys()):
         tasks[task_id] = False
-    await asyncio.sleep(1)  # Give some time for tasks to finish
+    await asyncio.sleep(1)
     tasks.clear()
     print("All tasks stopped.")
 
@@ -211,6 +213,8 @@ async def track_changes_in_one_drive(request: Request):
 
     async with aiohttp.ClientSession() as session:
         async with session.get(graph_url, headers=headers) as response:
+            if response.status == 401:
+                raise HTTPException(status_code=401, detail="Unauthorized")
             delta_data = await response.json()
 
     global_state["delta_link"] = delta_data["@odata.deltaLink"]
