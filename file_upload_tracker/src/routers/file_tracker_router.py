@@ -13,10 +13,10 @@ import msal
 import httpx
 import webbrowser
 import aiohttp
-import csv
 from typing import List, Dict
 import json
 from pathlib import Path
+from log_events import ensure_csv_exists, log_event
 
 router = APIRouter(tags=["Track File Changes"])
 
@@ -132,24 +132,22 @@ def save_changes_to_csv(changes: List[Dict[str, str]]):
     """Save changes to a CSV file."""
     local_record = load_local_record()
 
-    with open(settings.one_drive_file_tracker, mode="a", newline="") as file:
-        writer = csv.writer(file)
-        for change in changes:
-            item_id = change.get("id", "unknown")
-            change_type = change.get("deleted", {}).get("state") or change.get(
-                "changeType", "updated" if item_id in local_record else "created"
-            )
-            item_name = change.get("name", "Unknown")
+    for change in changes:
+        item_id = change.get("id", "unknown")
+        change_type = change.get("deleted", {}).get("state") or change.get(
+            "changeType", "updated" if item_id in local_record else "created"
+        )
+        item_name = change.get("name", "Unknown")
 
-            if item_name.startswith(FOLDER_NAME):
-                continue
+        if item_name.startswith(FOLDER_NAME):
+            continue
 
-            if change_type == "deleted":
-                item_name = local_record.pop(item_id, "Unknown")
-            else:
-                local_record[item_id] = item_name
-
-            writer.writerow([item_name, change_type, item_id])
+        if change_type == "deleted":
+            item_name = local_record.pop(item_id, "Unknown")
+        else:
+            local_record[item_id] = item_name
+        print(f"{change_type}: {item_name}")
+        log_event(settings.one_drive_file_tracker, change_type, item_name)
 
     save_local_record(local_record)
 
@@ -171,6 +169,7 @@ async def track_changes_in_one_drive(request: Request, access_token: str):
         if change.get("changeType") != "deleted":
             local_record[change.get("id")] = change.get("name")
 
+    ensure_csv_exists(settings.one_drive_file_tracker)
     save_local_record(local_record)
     return {"changes": changes}
 
