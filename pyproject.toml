@@ -15,11 +15,13 @@ python-dotenv = "^1.0.1"
 coverage = "^7.6.1"
 pydantic-settings = "^2.4.0"
 requests = "^2.32.3"
-email_handler = "^0.3.0"
+email_handler = {path = "C:/Users/ashritha.shankar/email_handler/email_handler/dist/email_handler-0.3.0.tar.gz"}
 log-events = "^0.1.0"
 httpx = "^0.27.0"
 msal = "^1.30.0"
 aiohttp = "^3.10.2"
+pandas = "^2.2.2"
+streamlit = "^1.37.1"
 
 [tool.poetry.group.dev.dependencies]
 pydocstyle = "^6.3.0"

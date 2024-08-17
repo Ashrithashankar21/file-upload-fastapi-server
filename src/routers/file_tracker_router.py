@@ -16,6 +16,11 @@ from src.handlers.one_drive_file_handlers import (
     track_file_changes,
 )
 import asyncio
+import requests
+import json
+import os
+import csv
+
 
 router = APIRouter()
 
@@ -156,3 +161,67 @@ async def track_changes_in_one_drive():
         tracking has started.
     """
     return await track_file_changes(global_state, tasks)
+
+
+def check_csv_headers(file_id, access_token):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    file_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
+
+    # Download the first few lines to inspect headers
+    response = requests.get(file_url, headers=headers, stream=True)
+    response.raise_for_status()
+
+    # Read the first few lines
+    content = response.text.splitlines()
+    if not content:
+        raise ValueError("No content returned from the file.")
+
+    # Assuming the first row is the header
+    header_row = content[0]
+    expected_headers = [
+        "employee_number",
+        "employee_name",
+        "python",
+        "react",
+        "angular",
+        "c#",
+        "labview",
+    ]
+
+    # Parse the header row to check if it matches the expected headers
+    reader = csv.reader([header_row], delimiter=",")  # Adjust delimiter if needed
+    headers = next(reader)
+
+    return headers == expected_headers
+
+
+def download_file(file_id, filename, access_token):
+    print(access_token)
+    if not check_csv_headers(file_id, access_token):
+        print(f"Headers do not match for {filename}. Skipping download.")
+        return
+    headers = {"Authorization": f"Bearer {access_token}"}
+    file_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
+    os.makedirs("C:/Users/ashritha.shankar/Documents/one-drive-files", exist_ok=True)
+    response = requests.get(file_url, headers=headers, stream=True)
+    response.raise_for_status()
+    file_path = os.path.join(
+        "C:/Users/ashritha.shankar/Documents/one-drive-files", filename
+    )
+    with open(file_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+    print(f"Downloaded {filename}")
+
+
+@router.get("/download-file")
+async def download_files():
+    with open(settings.one_drive_record_file, "r") as file:
+        data = json.load(file)
+
+    file_ids = list(data.keys())
+    file_names = list(data.values())
+
+    for file_id, file_name in zip(file_ids, file_names):
+        if file_name.endswith(".csv"):
+            download_file(file_id, file_name, global_state["access_token"])
