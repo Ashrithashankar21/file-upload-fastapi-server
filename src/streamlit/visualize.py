@@ -1,13 +1,11 @@
 import pandas as pd
 import os
+import streamlit as st
 
-# Define the path to the folder containing CSV files
 CSV_FOLDER_PATH = "C:/Users/ashritha.shankar/Documents/one-drive-files"
 
 
 def read_csv_files(folder_path):
-    """Read all CSV files from the specified folder path and return a dictionary of DataFrames."""
-    # List all files in the folder
     files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
 
     data_frames = {}
@@ -24,10 +22,28 @@ def read_csv_files(folder_path):
     return data_frames
 
 
-# Read CSV files from the folder
 data_frames = read_csv_files(CSV_FOLDER_PATH)
 
-# Example: Print the first few rows of each DataFrame
 for filename, df in data_frames.items():
-    print(f"\nFile: {filename}")
-    print(df.head())
+    skill_columns = ["python", "react", "angular", "c#", "labview"]
+    aggregated_counts = {}
+
+    for skill in skill_columns:
+        skill_counts = df[skill].value_counts()
+        for level, count in skill_counts.items():
+            if skill not in aggregated_counts:
+                aggregated_counts[skill] = {}
+            aggregated_counts[skill][level] = count
+
+    plot_data = []
+    for skill, levels in aggregated_counts.items():
+        for level, count in levels.items():
+            plot_data.append({"Skill": skill, "Level": level, "Count": count})
+
+    plot_df = pd.DataFrame(plot_data)
+
+    st.subheader("Bar Chart of Skill Levels by Stack")
+    st.bar_chart(
+        plot_df.set_index(["Skill", "Level"]).unstack()["Count"].fillna(0),
+        use_container_width=True,
+    )
