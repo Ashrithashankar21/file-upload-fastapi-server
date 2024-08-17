@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     one_drive_record_file: str
     one_drive_folder_to_track: str
     one_drive_folder_user_id: str
+    one_drive_database: str
     model_config = SettingsConfigDict(env_file=".env")
 
 

@@ -47,12 +47,10 @@ async def shutdown_event():
     the task list.
     """
     global tasks
-    print("Shutting down server. Stopping all tasks...")
     for task_id in list(tasks.keys()):
         tasks[task_id] = False
     await asyncio.sleep(1)
     tasks.clear()
-    print("All tasks stopped.")
 
 
 @router.get("/authorize", tags=["Authorize"])
@@ -196,9 +194,7 @@ def check_csv_headers(file_id, access_token):
 
 
 def download_file(file_id, filename, access_token):
-    print(access_token)
     if not check_csv_headers(file_id, access_token):
-        print(f"Headers do not match for {filename}. Skipping download.")
         return
     headers = {"Authorization": f"Bearer {access_token}"}
     file_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
@@ -211,12 +207,41 @@ def download_file(file_id, filename, access_token):
     with open(file_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
-    print(f"Downloaded {filename}")
+
+
+def fetch_onedrive_data(access_token):
+    headers = {"Authorization": f"Bearer {access_token}"}
+    graph_api_base_url = "https://graph.microsoft.com/v1.0"
+    folder_path = f"{settings.one_drive_folder_to_track}"
+    graph_url = f"{graph_api_base_url}/me/drive/root:/{folder_path}:/children"
+
+    response = requests.get(graph_url, headers=headers)
+    if response.status_code == status.HTTP_401_UNAUTHORIZED:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized",
+        )
+    data = response.json()
+    if "value" in data:
+        # Extract file names and IDs
+        files_info = {item["id"]: item["name"] for item in data["value"]}
+
+        # Save the data to a JSON file
+        with open(settings.one_drive_database, "w") as f:
+            json.dump(files_info, f, indent=4)
+
+        return files_info
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No files found or invalid response format.",
+        )
 
 
 @router.get("/download-file")
 async def download_files():
-    with open(settings.one_drive_record_file, "r") as file:
+    fetch_onedrive_data(global_state["access_token"])
+    with open(settings.one_drive_database, "r") as file:
         data = json.load(file)
 
     file_ids = list(data.keys())

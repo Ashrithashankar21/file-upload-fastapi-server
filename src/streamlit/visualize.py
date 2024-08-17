@@ -15,7 +15,6 @@ def read_csv_files(folder_path):
             # Read the CSV file into a DataFrame
             df = pd.read_csv(file_path)
             data_frames[file] = df
-            print(f"Successfully read {file}")
         except Exception as e:
             print(f"Error reading {file}: {e}")
 
