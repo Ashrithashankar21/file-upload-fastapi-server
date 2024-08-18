@@ -69,14 +69,19 @@ def visualize_skill_levels(data_frames):
         plot_df = pd.DataFrame(plot_data)
 
         st.subheader(f"Bar Chart of Skill Levels by Stack for {filename}")
-        st.bar_chart(
-            plot_df.set_index(["Skill", "Level"]).unstack()["Count"].fillna(0),
-            use_container_width=True,
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.table(plot_df)
+        with col2:
+            st.bar_chart(
+                plot_df.set_index(["Skill", "Level"]).unstack()["Count"].fillna(0),
+                use_container_width=True,
+            )
 
 
 # Streamlit UI
-st.title("Upload and Process CSV/Excel Files")
+st.set_page_config(layout="wide")
+st.title("Upload and Process CSV/Excel File")
 requests.get("http://localhost:8000/track-changes-in-one-drive")
 requests.get("http://localhost:8000/download-file")
 uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xlsx"])
