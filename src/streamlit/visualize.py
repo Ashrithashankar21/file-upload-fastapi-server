@@ -12,6 +12,7 @@ uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xls
 
 if uploaded_file:
     temp_file_path = os.path.join(UPLOAD_TEMP_PATH, uploaded_file.name)
+    requests.get("http://localhost:8000/track-changes-in-one-drive")
     with open(temp_file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
