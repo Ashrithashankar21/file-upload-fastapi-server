@@ -1,8 +1,30 @@
 import pandas as pd
 import os
 import streamlit as st
+import requests
 
 CSV_FOLDER_PATH = "C:/Users/ashritha.shankar/Documents/one-drive-files"
+
+UPLOAD_TEMP_PATH = "C:/Users/ashritha.shankar/Documents/temp_uploaded"
+os.makedirs(UPLOAD_TEMP_PATH, exist_ok=True)
+
+uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xlsx"])
+
+if uploaded_file:
+    temp_file_path = os.path.join(UPLOAD_TEMP_PATH, uploaded_file.name)
+    with open(temp_file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    # Now send this file to FastAPI
+    with open(temp_file_path, "rb") as f:
+        response = requests.post(
+            "http://localhost:8000/upload-file",
+            files={"file": (uploaded_file.name, f, uploaded_file.type)},
+        )
+        if response.status_code == 200:
+            requests.get("http://localhost:8000/download-file")
+
+    os.remove(temp_file_path)
 
 
 def read_csv_files(folder_path):

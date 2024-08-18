@@ -19,7 +19,6 @@ import asyncio
 import requests
 import json
 import os
-import csv
 import pandas as pd
 
 
@@ -113,6 +112,7 @@ async def callback(request: Request):
 
 @router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
+    print(file)
     """
     Uploads a file to OneDrive.
 
