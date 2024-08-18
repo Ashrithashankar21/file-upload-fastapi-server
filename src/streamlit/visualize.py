@@ -71,7 +71,18 @@ def visualize_skill_levels(data_frames):
         st.subheader(f"Bar Chart of Skill Levels by Stack for {filename}")
         col1, col2 = st.columns(2)
         with col1:
-            st.table(plot_df)
+            # Make the DataFrame editable
+            edited_df = st.data_editor(
+                df, use_container_width=True, key=f"editor_{filename}"
+            )
+
+            # Optionally save edited DataFrame
+            if st.button("Save Changes", key=f"save_changes_{filename}"):
+                edited_df.to_csv(
+                    os.path.join(CSV_FOLDER_PATH, f"edited_{filename}"), index=False
+                )
+                st.success("Changes saved successfully!")
+
         with col2:
             st.bar_chart(
                 plot_df.set_index(["Skill", "Level"]).unstack()["Count"].fillna(0),
