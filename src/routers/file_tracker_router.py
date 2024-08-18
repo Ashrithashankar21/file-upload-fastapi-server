@@ -293,3 +293,28 @@ async def download_files():
     for file_id, file_name in zip(file_ids, file_names):
         if file_name.endswith(".csv") or file_name.endswith(".xlsx"):
             download_file(file_id, file_name, global_state["access_token"])
+
+
+@router.delete("/delete-file")
+async def delete_file(item_id: str):
+    """
+    Deletes a file from the OneDrive folder.
+
+    Args:
+        file_name (str): The name of the file to delete.
+
+    Returns:
+        dict: A message indicating whether the file was deleted
+        successfully or not.
+    """
+
+    headers = {
+        "Authorization": f"Bearer {global_state['access_token']}",
+        "Content-Type": "application/json",
+    }
+    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{item_id}"
+    response = requests.delete(url, headers=headers)
+    if response.status_code == status.HTTP_204_NO_CONTENT:
+        return {"message": " deleted successfully."}
+    else:
+        return {"message": f"Failed to delete file "}

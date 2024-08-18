@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import streamlit as st
 import requests
+import json
 
 # Define paths
 CSV_FOLDER_PATH = "C:/Users/ashritha.shankar/Documents/one-drive-files"
@@ -73,14 +74,41 @@ def visualize_skill_levels(data_frames):
         with col1:
             # Make the DataFrame editable
             edited_df = st.data_editor(
-                df, use_container_width=True, key=f"editor_{filename}"
+                df,
+                use_container_width=True,
+                key=f"editor_{filename}",
+                num_rows="dynamic",
             )
 
             # Optionally save edited DataFrame
             if st.button("Save Changes", key=f"save_changes_{filename}"):
-                edited_df.to_csv(
-                    os.path.join(CSV_FOLDER_PATH, f"edited_{filename}"), index=False
+                edited_csv_path = os.path.join(CSV_FOLDER_PATH, filename)
+                edited_df.to_csv(edited_csv_path, index=False)
+
+                key = ""
+                with open(
+                    "C:/Users/ashritha.shankar/Documents/onedrive_database.json", "r"
+                ) as f:
+                    file = f.read()
+                    for key, value in json.loads(file).items():
+                        if value.split(".")[0] == filename.split(".")[0]:
+                            key = key
+
+                requests.delete(
+                    "http://localhost:8000/delete-file",
+                    params={"item_id": key},
                 )
+                with open(edited_csv_path, "rb") as f:
+                    requests.post(
+                        "http://localhost:8000/upload-file",
+                        files={
+                            "file": (
+                                os.path.basename(edited_csv_path),
+                                f,
+                                "text/csv",  # Content type for CSV
+                            )
+                        },
+                    )
                 st.success("Changes saved successfully!")
 
         with col2:
