@@ -77,7 +77,8 @@ def visualize_skill_levels(data_frames):
 
 # Streamlit UI
 st.title("Upload and Process CSV/Excel Files")
-
+requests.get("http://localhost:8000/track-changes-in-one-drive")
+requests.get("http://localhost:8000/download-file")
 uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xlsx"])
 
 if uploaded_file:

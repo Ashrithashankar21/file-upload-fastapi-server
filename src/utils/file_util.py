@@ -7,6 +7,7 @@ from email_handler import send_email
 import aiohttp
 import asyncio
 from src.utils.auth_util import get_access_token
+import requests
 
 
 def load_local_record(record_file_path: str) -> Dict[str, str]:
@@ -46,7 +47,11 @@ def save_local_record(record: Dict[str, str], record_file_path: str) -> None:
         json.dump(record, file, indent=4)
 
 
-def save_changes_to_csv(
+async def visualize():
+    await requests.get("http://localhost:8000/download-file")
+
+
+async def save_changes_to_csv(
     changes: List[Dict[str, str]],
     record_file_path: str,
 ) -> None:
@@ -116,6 +121,7 @@ def save_changes_to_csv(
             settings.receiver_email,
         )
 
+        requests.get("http://localhost:8000/download-file", timeout=5)
     save_local_record(local_record, record_file_path)
 
 
@@ -173,7 +179,7 @@ async def save_changes(global_state: Dict[str, Any]) -> Dict[str, str]:
     """
     try:
         changes = await poll_changes(global_state)
-        save_changes_to_csv(
+        await save_changes_to_csv(
             changes.get("changes", []),
             settings.one_drive_record_file,
         )
