@@ -20,6 +20,7 @@ import requests
 import json
 import os
 import csv
+import pandas as pd
 
 
 router = APIRouter()
@@ -161,52 +162,87 @@ async def track_changes_in_one_drive():
     return await track_file_changes(global_state, tasks)
 
 
-def check_csv_headers(file_id, access_token):
-    headers = {"Authorization": f"Bearer {access_token}"}
-    file_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
-
-    # Download the first few lines to inspect headers
-    response = requests.get(file_url, headers=headers, stream=True)
-    response.raise_for_status()
-
-    # Read the first few lines
-    content = response.text.splitlines()
-    if not content:
-        raise ValueError("No content returned from the file.")
-
-    # Assuming the first row is the header
-    header_row = content[0]
-    expected_headers = [
-        "employee_number",
-        "employee_name",
-        "python",
-        "react",
-        "angular",
-        "c#",
-        "labview",
-    ]
-
-    # Parse the header row to check if it matches the expected headers
-    reader = csv.reader([header_row], delimiter=",")  # Adjust delimiter if needed
-    headers = next(reader)
-
-    return headers == expected_headers
-
-
 def download_file(file_id, filename, access_token):
-    if not check_csv_headers(file_id, access_token):
-        return
+    print("Downloading file:", filename)
     headers = {"Authorization": f"Bearer {access_token}"}
     file_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
-    os.makedirs("C:/Users/ashritha.shankar/Documents/one-drive-files", exist_ok=True)
-    response = requests.get(file_url, headers=headers, stream=True)
-    response.raise_for_status()
-    file_path = os.path.join(
+    file_extension = filename.split(".")[-1].lower()
+
+    # Define the output file path
+    local_file_path = os.path.join(
         "C:/Users/ashritha.shankar/Documents/one-drive-files", filename
     )
-    with open(file_path, "wb") as f:
+
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
+
+    # Download the file
+    response = requests.get(file_url, headers=headers, stream=True)
+    response.raise_for_status()
+
+    # Save the file to local path
+    with open(local_file_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
+
+    # Convert XLSX to CSV if needed
+    if file_extension == "xlsx":
+        print("Converting XLSX to CSV:", filename)
+        # Convert XLSX to temporary CSV
+        temp_csv_path = os.path.splitext(local_file_path)[0] + ".csv"
+        df = pd.read_excel(local_file_path)
+        df.to_csv(temp_csv_path, index=False)
+
+        # Inline check for headers
+        expected_headers = [
+            "employee_number",
+            "employee_name",
+            "python",
+            "react",
+            "angular",
+            "c#",
+            "labview",
+        ]
+
+        with open(temp_csv_path, "r") as f:
+            header_row = f.readline().strip()
+            print("0", header_row)
+
+        headers = header_row.split(",")
+
+        print("1", headers)
+        if headers == expected_headers:
+            print("3", expected_headers)
+            # If headers are correct, keep the CSV file and remove the XLSX
+            os.remove(local_file_path)
+        else:
+            # If headers are incorrect, remove the temporary CSV file
+            print("2", expected_headers)
+
+            os.remove(temp_csv_path)
+            print(
+                f"Skipped converting {filename} as it does not have the expected headers."
+            )
+    elif file_extension == "csv":
+        # Inline check for headers
+        expected_headers = [
+            "employee_number",
+            "employee_name",
+            "python",
+            "react",
+            "angular",
+            "c#",
+            "labview",
+        ]
+
+        with open(local_file_path, "r") as f:
+            header_row = f.readline().strip()
+
+        headers = header_row.split(",")
+
+        if headers != expected_headers:
+            # If headers are incorrect, remove the CSV file
+            os.remove(local_file_path)
 
 
 def fetch_onedrive_data(access_token):
@@ -248,5 +284,5 @@ async def download_files():
     file_names = list(data.values())
 
     for file_id, file_name in zip(file_ids, file_names):
-        if file_name.endswith(".csv"):
+        if file_name.endswith(".csv") or file_name.endswith(".xlsx"):
             download_file(file_id, file_name, global_state["access_token"])
