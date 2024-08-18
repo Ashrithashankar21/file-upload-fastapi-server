@@ -112,7 +112,6 @@ async def callback(request: Request):
 
 @router.post("/upload-file", tags=["Upload File"])
 async def upload_file(file: UploadFile = File(...)):
-    print(file)
     """
     Uploads a file to OneDrive.
 
@@ -163,14 +162,14 @@ async def track_changes_in_one_drive():
 
 
 def download_file(file_id, filename, access_token):
-    print("Downloading file:", filename)
     headers = {"Authorization": f"Bearer {access_token}"}
     file_url = f"https://graph.microsoft.com/v1.0/me/drive/items/{file_id}/content"
     file_extension = filename.split(".")[-1].lower()
 
     # Define the output file path
     local_file_path = os.path.join(
-        "C:/Users/ashritha.shankar/Documents/one-drive-files", filename
+        settings.one_drive_download_folder,
+        filename,
     )
 
     # Create directory if it doesn't exist
@@ -187,7 +186,6 @@ def download_file(file_id, filename, access_token):
 
     # Convert XLSX to CSV if needed
     if file_extension == "xlsx":
-        print("Converting XLSX to CSV:", filename)
         # Convert XLSX to temporary CSV
         temp_csv_path = os.path.splitext(local_file_path)[0] + ".csv"
         df = pd.read_excel(local_file_path)
@@ -206,23 +204,17 @@ def download_file(file_id, filename, access_token):
 
         with open(temp_csv_path, "r") as f:
             header_row = f.readline().strip()
-            print("0", header_row)
 
         headers = header_row.split(",")
 
-        print("1", headers)
         if headers == expected_headers:
-            print("3", expected_headers)
             # If headers are correct, keep the CSV file and remove the XLSX
             os.remove(local_file_path)
         else:
             # If headers are incorrect, remove the temporary CSV file
-            print("2", expected_headers)
 
             os.remove(temp_csv_path)
-            print(
-                f"Skipped converting {filename} as it does not have the expected headers."
-            )
+
     elif file_extension == "csv":
         # Inline check for headers
         expected_headers = [
@@ -241,7 +233,6 @@ def download_file(file_id, filename, access_token):
         headers = header_row.split(",")
 
         if headers != expected_headers:
-            # If headers are incorrect, remove the CSV file
             os.remove(local_file_path)
 
 
@@ -251,7 +242,10 @@ def fetch_onedrive_data(access_token):
     folder_path = f"{settings.one_drive_folder_to_track}"
     graph_url = f"{graph_api_base_url}/me/drive/root:/{folder_path}:/children"
 
-    response = requests.get(graph_url, headers=headers)
+    response = requests.get(
+        graph_url,
+        headers=headers,
+    )
     if response.status_code == status.HTTP_401_UNAUTHORIZED:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -283,6 +277,19 @@ async def download_files():
     file_ids = list(data.keys())
     file_names = list(data.values())
 
+    local_files = {f for f in os.listdir(settings.one_drive_download_folder)}
+
+    # Set of files to keep
+    files_to_keep = set(file_names)
+    # Remove files not in OneDrive
+    for local_file in local_files:
+        if local_file not in files_to_keep:
+            os.remove(
+                os.path.join(
+                    settings.one_drive_download_folder,
+                    local_file,
+                )
+            )
     for file_id, file_name in zip(file_ids, file_names):
         if file_name.endswith(".csv") or file_name.endswith(".xlsx"):
             download_file(file_id, file_name, global_state["access_token"])
