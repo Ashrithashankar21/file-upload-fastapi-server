@@ -93,7 +93,7 @@ def visualize_skill_levels(data_frames):
                     for key, value in json.loads(file).items():
                         if value.split(".")[0] == filename.split(".")[0]:
                             key = key
-
+                            break
                 requests.delete(
                     "http://localhost:8000/delete-file",
                     params={"item_id": key},
